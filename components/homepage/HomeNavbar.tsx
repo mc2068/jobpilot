@@ -7,7 +7,11 @@ const NAV_LINKS = [
   { label: "Profile", href: "/profile" },
 ];
 
-export function HomeNavbar() {
+type Props = {
+  ctaHref: string;
+};
+
+export function HomeNavbar({ ctaHref }: Props) {
   return (
     <header className="border-b border-border-light bg-surface px-4 xl:px-0">
       <div className="mx-auto flex h-20 max-w-[1280px] items-center justify-between">
@@ -34,7 +38,7 @@ export function HomeNavbar() {
         </nav>
 
         <Link
-          href="/login"
+          href={ctaHref}
           className="rounded-md border border-text-slate-medium bg-text-slate px-[19px] py-2 text-[15px] leading-6 text-surface transition-opacity hover:opacity-90"
         >
           Start for free

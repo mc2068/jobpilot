@@ -1,6 +1,10 @@
 import { CtaButtons } from "@/components/homepage/CtaButtons";
 
-export function Hero() {
+type Props = {
+  ctaHref: string;
+};
+
+export function Hero({ ctaHref }: Props) {
   return (
     <section className="border-y border-border-light bg-hero-glow px-6 pt-[59px] pb-16 text-center">
       <h1 className="text-[32px] leading-tight font-bold tracking-[-0.02em] text-text-black sm:text-5xl lg:text-[64px] lg:leading-[72px]">
@@ -12,7 +16,7 @@ export function Hero() {
         and gives you everything you need to stand out.
       </p>
       <div className="mt-[23px]">
-        <CtaButtons />
+        <CtaButtons primaryHref={ctaHref} />
       </div>
     </section>
   );

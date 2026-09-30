@@ -1,6 +1,10 @@
 import { CtaButtons } from "@/components/homepage/CtaButtons";
 
-export function BottomCta() {
+type Props = {
+  ctaHref: string;
+};
+
+export function BottomCta({ ctaHref }: Props) {
   return (
     <section className="border-y border-border-light bg-hero-glow px-6 py-20 text-center">
       <h2 className="mx-auto max-w-[780px] text-4xl font-bold tracking-[-0.04em] text-text-slate sm:text-5xl lg:text-[58px] lg:leading-[58px]">
@@ -11,7 +15,7 @@ export function BottomCta() {
         minutes.
       </p>
       <div className="mt-7">
-        <CtaButtons />
+        <CtaButtons primaryHref={ctaHref} />
       </div>
     </section>
   );

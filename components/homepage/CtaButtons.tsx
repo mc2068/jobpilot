@@ -1,11 +1,15 @@
 import Link from "next/link";
 import { Play } from "lucide-react";
 
-export function CtaButtons() {
+type Props = {
+  primaryHref: string;
+};
+
+export function CtaButtons({ primaryHref }: Props) {
   return (
     <div className="flex flex-wrap items-center justify-center gap-4">
       <Link
-        href="/login"
+        href={primaryHref}
         className="inline-flex h-12 items-center gap-2.5 rounded-md bg-text-slate bg-linear-to-b from-surface/10 to-transparent px-8 text-base font-medium text-surface transition-opacity hover:opacity-90"
       >
         Get Started

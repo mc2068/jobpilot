@@ -67,6 +67,12 @@
   --color-linkedin-light: #dce6f1;
   --color-linkedin-foreground: #ffffff;
 
+  /* Google brand — the four colors of the "G" mark on the login page */
+  --color-google-blue: #4285f4;
+  --color-google-red: #ea4335;
+  --color-google-yellow: #fbbc05;
+  --color-google-green: #34a853;
+
   /* Dark overlays */
   --color-overlay: #111827;
   --color-overlay-dark: #131316;
