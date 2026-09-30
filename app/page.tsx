@@ -7,9 +7,10 @@ import { HomeNavbar } from "@/components/homepage/HomeNavbar";
 import { Testimonial } from "@/components/homepage/Testimonial";
 import { Footer } from "@/components/layout/Footer";
 import { hasSession } from "@/lib/insforge-server";
+import { DASHBOARD_PATH, LOGIN_PATH } from "@/lib/routes";
 
 export default async function HomePage() {
-  const ctaHref = (await hasSession()) ? "/dashboard" : "/login";
+  const ctaHref = (await hasSession()) ? DASHBOARD_PATH : LOGIN_PATH;
 
   return (
     <div className="flex-1 bg-surface">

@@ -6,6 +6,7 @@ import { CircleAlert } from "lucide-react";
 import { GitHubIcon } from "@/components/auth/GitHubIcon";
 import { GoogleIcon } from "@/components/auth/GoogleIcon";
 import { OAuthButton } from "@/components/auth/OAuthButton";
+import { HOME_PATH, OAUTH_ERROR } from "@/lib/routes";
 
 export const metadata: Metadata = {
   title: "Sign in · JobPilot",
@@ -13,11 +14,11 @@ export const metadata: Metadata = {
 
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const { error } = await searchParams;
-  const hasError = error === "oauth";
+  const hasError = error === OAUTH_ERROR;
 
   return (
     <main className="flex flex-1 flex-col items-center justify-center bg-hero-glow px-4 py-16">
-      <Link href="/" aria-label="JobPilot home">
+      <Link href={HOME_PATH} aria-label="JobPilot home">
         <Image
           src="/logo.png"
           alt="JobPilot"

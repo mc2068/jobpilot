@@ -5,10 +5,13 @@ import { redirect } from "next/navigation";
 import { createAuthActions } from "@insforge/sdk/ssr";
 
 import { CODE_VERIFIER_COOKIE } from "@/lib/insforge-server";
+import { CALLBACK_PATH, HOME_PATH, LOGIN_ERROR_PATH } from "@/lib/routes";
 import type { OAuthProvider } from "@/types";
 
 const OAUTH_PROVIDERS: OAuthProvider[] = ["google", "github"];
-const LOGIN_ERROR_PATH = "/login?error=oauth";
+// Without a base URL, new URL() throws and every sign-in fails with only a
+// generic error, so fall back to the local dev server.
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
 // Both actions end in a redirect, so they return nothing — redirect() must be
 // called outside try/catch because it works by throwing.
@@ -25,10 +28,7 @@ export async function signInWithProvider(
     const cookieStore = await cookies();
     const auth = createAuthActions({ cookies: cookieStore });
     const { data, error } = await auth.signInWithOAuth(provider, {
-      redirectTo: new URL(
-        "/callback",
-        process.env.NEXT_PUBLIC_APP_URL,
-      ).toString(),
+      redirectTo: new URL(CALLBACK_PATH, APP_URL).toString(),
       skipBrowserRedirect: true,
     });
 
@@ -65,5 +65,5 @@ export async function signOut(): Promise<void> {
     console.error("[actions/auth] signOut", error);
   }
 
-  redirect("/");
+  redirect(HOME_PATH);
 }
