@@ -151,3 +151,41 @@ export type ProfileCompletion = {
   percent: number;
   missingFields: string[];
 };
+
+// The change since last week on a stats card: "+12%", and which way it went.
+export type StatTrend = {
+  label: string;
+  tone: "up" | "down" | "flat";
+};
+
+// One card of the dashboard stats bar. A card with a trend shows it as a badge
+// before the note.
+export type DashboardStat = {
+  label: string;
+  value: string;
+  trend?: StatTrend;
+  note: string;
+};
+
+// Blue for company research, green for a job search
+export type ActivityTone = "info" | "success";
+
+export type ActivityEntry = {
+  id: string;
+  tone: ActivityTone;
+  message: string;
+  time: string;
+};
+
+export type ChartPoint = {
+  label: string;
+  value: number;
+};
+
+// What one dashboard chart draws. `ticks` are the y-axis labels, lowest first.
+export type ChartSeries = {
+  data: ChartPoint[];
+  ticks: number[];
+  // True when every value is zero: the card shows a message instead of a chart
+  isEmpty: boolean;
+};

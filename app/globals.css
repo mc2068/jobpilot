@@ -78,6 +78,9 @@
   --color-overlay: #111827;
   --color-overlay-dark: #131316;
 
+  /* Dashboard chart axis labels */
+  --color-chart-axis: #9ca3af;
+
   /* Homepage hero glow */
   --color-glow-blue: #d3e1f5;
   --color-glow-pink: #f8e8f6;
