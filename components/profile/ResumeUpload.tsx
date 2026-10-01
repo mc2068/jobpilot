@@ -7,35 +7,86 @@ import {
   type ChangeEvent,
   type DragEvent,
 } from "react";
-import { CloudUpload, FileText, LoaderCircle, Sparkles } from "lucide-react";
+import {
+  CloudUpload,
+  ExternalLink,
+  FileText,
+  LoaderCircle,
+  Sparkles,
+} from "lucide-react";
 
 import { uploadResume } from "@/actions/profile";
+import { GenerateResumeRow } from "@/components/profile/GenerateResumeRow";
 import {
+  RESUME_GENERATION_ERROR,
   RESUME_MAX_SIZE_BYTES,
   RESUME_MAX_SIZE_MB,
   RESUME_MIME_TYPE,
 } from "@/lib/resume";
+import { RESUME_FILE_API_PATH, RESUME_GENERATE_API_PATH } from "@/lib/routes";
+import type { ActionResult, ResultNotice } from "@/types";
 
 type Props = {
   hasResume: boolean;
+  isProfileComplete: boolean;
   isExtracting: boolean;
   onExtract: () => void;
 };
 
 const UPLOAD_ERROR = "We couldn’t upload your resume. Please try again.";
+const GENERATED_NAME = "Resume generated from your profile";
 
-export function ResumeUpload({ hasResume, isExtracting, onExtract }: Props) {
+export function ResumeUpload({
+  hasResume,
+  isProfileComplete,
+  isExtracting,
+  onExtract,
+}: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [uploadedName, setUploadedName] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [generateResult, setGenerateResult] = useState<ResultNotice | null>(
+    null,
+  );
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, startUpload] = useTransition();
+  const [isGenerating, startGenerating] = useTransition();
 
   const isUploaded = hasResume || uploadedName !== null;
 
+  const handleGenerate = () => {
+    setGenerateResult(null);
+
+    startGenerating(async () => {
+      try {
+        const response = await fetch(RESUME_GENERATE_API_PATH, {
+          method: "POST",
+        });
+        const result: ActionResult = await response.json();
+
+        if (!result.success) {
+          setGenerateResult({
+            success: false,
+            message: result.error ?? RESUME_GENERATION_ERROR,
+          });
+          return;
+        }
+
+        setUploadedName(GENERATED_NAME);
+        setGenerateResult({
+          success: true,
+          message: "Your resume is ready. Use View resume to open it.",
+        });
+      } catch (generateError) {
+        console.error("[profile/ResumeUpload]", generateError);
+        setGenerateResult({ success: false, message: RESUME_GENERATION_ERROR });
+      }
+    });
+  };
+
   const selectFile = (candidate: File | undefined) => {
-    if (!candidate || isUploading) {
+    if (!candidate || isUploading || isGenerating) {
       return;
     }
 
@@ -50,6 +101,7 @@ export function ResumeUpload({ hasResume, isExtracting, onExtract }: Props) {
     }
 
     setError(null);
+    setGenerateResult(null);
     setFileName(candidate.name);
 
     const formData = new FormData();
@@ -101,11 +153,26 @@ export function ResumeUpload({ hasResume, isExtracting, onExtract }: Props) {
 
   return (
     <section className="rounded-xl border border-border bg-surface p-8 shadow-sm">
-      <h2 className="text-lg font-semibold text-text-primary">Resume</h2>
-      <p className="mt-1 text-sm text-text-secondary">
-        Upload an existing resume to auto-fill the profile, or generate a new
-        tailored one from your details below.
-      </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-lg font-semibold text-text-primary">Resume</h2>
+          <p className="mt-1 text-sm text-text-secondary">
+            Upload an existing resume to auto-fill the profile, or generate a
+            new tailored one from your details below.
+          </p>
+        </div>
+        {isUploaded && !isUploading && !isGenerating && (
+          <a
+            href={RESUME_FILE_API_PATH}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex shrink-0 items-center gap-1.5 text-sm font-semibold text-accent transition-opacity hover:opacity-80"
+          >
+            View resume
+            <ExternalLink className="size-4" />
+          </a>
+        )}
+      </div>
 
       {/* The button inside is the keyboard path; its click bubbles up to here */}
       <div
@@ -140,7 +207,7 @@ export function ResumeUpload({ hasResume, isExtracting, onExtract }: Props) {
         <p className="mt-1 text-sm text-text-secondary">{hint}</p>
         <button
           type="button"
-          disabled={isUploading}
+          disabled={isUploading || isGenerating}
           className="mt-5 h-[42px] rounded-md border border-border bg-surface px-5 text-sm font-semibold text-text-dark shadow-xs transition-colors hover:bg-surface-secondary disabled:cursor-wait disabled:opacity-60"
         >
           {isUploaded ? "Replace Resume" : "Select Resume"}
@@ -149,7 +216,7 @@ export function ResumeUpload({ hasResume, isExtracting, onExtract }: Props) {
           ref={inputRef}
           type="file"
           accept={RESUME_MIME_TYPE}
-          disabled={isUploading}
+          disabled={isUploading || isGenerating}
           onChange={handleChange}
           onClick={(event) => event.stopPropagation()}
           className="hidden"
@@ -171,7 +238,7 @@ export function ResumeUpload({ hasResume, isExtracting, onExtract }: Props) {
           <button
             type="button"
             onClick={onExtract}
-            disabled={isExtracting || isUploading}
+            disabled={isExtracting || isUploading || isGenerating}
             aria-busy={isExtracting}
             className="inline-flex h-[42px] shrink-0 items-center gap-2 rounded-md border border-border bg-surface px-5 text-sm font-semibold text-text-dark shadow-xs transition-colors hover:bg-surface-secondary disabled:cursor-wait disabled:opacity-60"
           >
@@ -185,18 +252,14 @@ export function ResumeUpload({ hasResume, isExtracting, onExtract }: Props) {
         </div>
       )}
 
-      <div className="mt-6 flex flex-col items-start gap-4 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm text-text-medium">
-          Need a fresh document based on the fields below?
-        </p>
-        <button
-          type="button"
-          className="inline-flex h-10 items-center gap-2 rounded-md bg-accent px-5 text-sm font-semibold text-accent-foreground transition-opacity hover:opacity-90"
-        >
-          <FileText className="size-4" />
-          Generate Resume from Profile
-        </button>
-      </div>
+      <GenerateResumeRow
+        hasResume={isUploaded}
+        isComplete={isProfileComplete}
+        isGenerating={isGenerating}
+        isBusy={isUploading || isExtracting}
+        result={generateResult}
+        onGenerate={handleGenerate}
+      />
     </section>
   );
 }

@@ -101,6 +101,35 @@ export type ProfileFormValues = Pick<
   | "work_authorization"
 >;
 
+// The jobs columns a row of the Find Jobs table shows.
+export type JobListItem = {
+  id: string;
+  company: string;
+  title: string;
+  match_score: number;
+  salary: string | null;
+  found_at: string;
+};
+
+// The jobs columns the job details page shows.
+export type JobDetails = JobListItem & {
+  source_url: string | null;
+  external_apply_url: string | null;
+  location: string | null;
+  job_type: string | null;
+  about_role: string | null;
+  match_reason: string | null;
+  matched_skills: string[];
+  missing_skills: string[];
+};
+
+// What one Find Jobs run saved: every scored job, and how many of them
+// reached MATCH_THRESHOLD.
+export type JobSearchResult = {
+  found: number;
+  strongMatches: number;
+};
+
 export type ActionResult = {
   success: boolean;
   error?: string;

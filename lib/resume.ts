@@ -7,6 +7,10 @@ export const RESUME_UNREADABLE_ERROR =
   "Could not extract text from this PDF. Please try a different file.";
 export const RESUME_EXTRACTION_ERROR =
   "We couldn’t read your resume right now. Please try again.";
+export const RESUME_GENERATION_ERROR =
+  "We couldn’t generate your resume right now. Please try again.";
+export const RESUME_INCOMPLETE_PROFILE_ERROR =
+  "Complete and save your profile before generating a resume.";
 
 // One resume per user. Storage policies only allow keys under the user's own id.
 export function getResumeKey(userId: string): string {

@@ -1,6 +1,10 @@
 import { PostHog } from "posthog-node";
 
-type ServerEvent = "user_signed_in" | "profile_completed";
+type ServerEvent =
+  | "user_signed_in"
+  | "profile_completed"
+  | "job_search_started"
+  | "job_found";
 
 type EventProperties = Record<string, string | number | boolean>;
 

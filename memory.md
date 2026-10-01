@@ -1,75 +1,67 @@
-# Memory — Feature 04 Database Schema (Phase 1 complete)
+# Memory — Feature 12 Job Details Page (Phase 4 started)
 
-Last updated: 2026-10-01 (end of session)
+Last updated: 2026-10-01 (open questions closed)
 
 ## What was built
 
-- **04 Database Schema, applied to the live InsForge backend, uncommitted.**
-  - `migrations/20261001085529_initial-schema.sql`: `profiles`, `agent_runs`, `jobs`, `agent_logs` (columns exactly as architecture.md), indexes, check constraints, row level security, the `on_auth_user_created` trigger on `auth.users` (function `public.handle_new_user`), a backfill of existing users, and own-folder policies on `storage.objects` for the `resumes` bucket.
-  - Private `resumes` bucket created with the CLI (`storage create-bucket resumes --private`). It is not part of the migration file.
-- **InsForge CLI set up for this project.** Logged in, project linked (`.insforge/project.json`, gitignored), InsForge skills (`insforge`, `insforge-cli`, `insforge-debug`, `insforge-integrations`) and `find-skills` installed globally.
-  - The link step added an InsForge block to `AGENTS.md` and ignore rules to `.gitignore` (`.insforge`, `.claude`, `.agents` and other agent folders).
-- Context files updated (outside the repo): architecture.md, library-docs.md (storage section, array-form insert), progress-tracker.md.
-- No app code, UI or TypeScript types were written for 04.
+- **12 Job Details Page — Full UI**, this session. Not committed.
+  - `app/find-jobs/[id]/page.tsx`: loads one job of the signed-in user (`.limit(1)`, not `.single()`), renders the page. `not-found.tsx` beside it is the "Job not found" page.
+  - `components/job-details/`: `JobInfo` (header card + four info cards), `JobInfoCard`, `MatchScore` (AI reasoning + skills card), `SkillTag`, `JobDescription` (Adzuna snippet + "Jobs by Adzuna" credit), `CompanyResearch` (empty state only), `JobActions` (Apply Now).
+  - `lib/job-details.ts` (`isJobId`, `formatJobType`, `getSafeUrl`, `ADZUNA_URL`, `MISSING_VALUE`), `getJobDetailsPath` in `lib/routes.ts`, the `JobDetails` type in `types/index.ts`.
+  - `JobsTable` rows now link to the details page (the company name link's `::after` covers the row). `JobsPagination` imports `ADZUNA_URL` from `lib/job-details.ts`.
+- **08, 09, 10 and 11 are still uncommitted** in the working tree (built in earlier sessions). Their decisions and test lists are in progress-tracker.md.
+- Context files updated (outside the repo): progress-tracker.md, ui-registry.md, architecture.md.
 
 ## Decisions made
 
-- **Schema follows architecture.md column for column.** No "tailored fields", no dedupe column or unique constraint on `jobs`: repeat searches save repeat rows. The user explicitly rejected adding an `external_id` column.
-- **Profile row is created by a database trigger at sign-up.** Every signed-in user has a `profiles` row, so 06 saves with an update, not an insert.
-- **`user_id` foreign keys point at `profiles(id)`**, and `profiles.id` at `auth.users(id)`. Deletes cascade all the way down.
-- **Narrower than "all four operations everywhere":** `profiles` has no delete policy; `agent_logs` is append-only (select + insert). The user was told and has not objected.
-- **`agent_logs.run_id` is nullable** (company research logs have a job but no run). `jobs.job_type` has no check constraint (Adzuna's values vary).
-- **`resumes` bucket is private.** Key is `{user_id}/resume.pdf`. No `getPublicUrl`: read with the SDK's `download()` as the signed-in user. `resume_pdf_url` stores the URL returned by `upload()`, which is not publicly openable.
-- **Schema changes are migration files** created with `npx -y @insforge/cli db migrations new <name>` and applied with `db migrations up --all`. Load the `insforge-cli` skill first. No ad-hoc DDL.
+- **The design wins over the plan** (`designs/job-details.png`): the score is a pill badge ("85% Match Score", green at `MATCH_THRESHOLD` or above, grey below), not `MatchScoreBar`. Missing skills are purple (`accent`) tags.
+- The page is 780px wide. The design's navbar (user icon, Sign out) was not built; `signOut` is still not wired to any UI.
+- **Research Company is a stub**: a button with no handler, and the card always shows the empty state. 13 wires it and reads `company_research`.
+- The description is `about_role` (the Adzuna snippet) only. Responsibilities, requirements, benefits and about-company are not rendered because nothing fills those columns.
+- View Job Post uses `source_url`; Apply Now uses `external_apply_url` then `source_url`. A link only renders if it starts with http(s) (`getSafeUrl`).
+- A bad id, an unknown id and another user's job all call `notFound()`; a failed read shows the page-level load error.
+- **Back to Jobs restores the list view.** `JobsTable` links to `/find-jobs/<id>?q=&match=&sort=&page=` (`buildJobDetailsHref` in `lib/job-search.ts`); the details page re-parses them with `parseJobFilters` and links back via `buildFindJobsHref`. The 404 page still goes to plain `/find-jobs`. Not yet checked in a browser.
 - Carried over and still in force:
-  - PostHog: init in `instrumentation-client.ts`; event names are typed unions (never call `posthog.capture` directly); server calls run inside `after()`; sign-out reset uses the `posthog_reset` cookie; env vars are `NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN` and `NEXT_PUBLIC_POSTHOG_HOST`.
+  - The jobs list state lives in the URL (`?q=&match=&sort=&page=`); default sort is Match Score (confirmed by the user).
+  - Text AI model is Claude Haiku 4.5 via `lib/anthropic.ts`; the Stagehand model is decided in 13.
+  - The user chose to wait for an `ANTHROPIC_API_KEY`: no stand-in scorer; job search answers 503 until then.
+  - Schema changes are migration files only; no dedupe of jobs across searches.
   - Tailwind v4 (the "use 3.4" line in AGENTS.md doesn't apply).
-  - `@insforge/sdk` with its `/ssr` subpaths; `@insforge/ssr` does not exist. OAuth runs server-side with PKCE; the proxy is only an optimistic check.
-  - No placeholder `/dashboard`: a successful login lands on a 404 until feature 14.
-  - Dashboard follows the design and project-overview ("Jobs This Week", "Company Research Activity").
-  - Score colours from ui-rules (80+ green, 60–79 blue, below 60 orange); missing-skill tags purple.
-  - Research synthesis temperature 0.4; Find Jobs table per build-plan (SOURCE column, 20 per page).
-  - recharts gets added to approved dependencies when first needed.
+- **Closed 2026-10-01:**
+  - No test runner for now; manual test lists in progress-tracker.md stay the check.
+  - `.claude` and `.agents` stay in `.gitignore`; project skills are not committed.
+  - RLS policies stay as they are (`profiles` no delete, `agent_logs` no update/delete) until something needs them.
+  - Keep the OpenTelemetry server logs and their four packages.
+  - PostHog reverse proxy: add before launch, not now.
+  - Git: commit 08–12 on `feature/02-auth` only. Push and merge to `main` wait until the signed-in tests have run.
 
 ## Problems solved
 
-- **A trigger on `auth.users` is allowed.** It is a documented InsForge pattern (`insforge-cli` skill, `references/auth.md`), so the fallback of pointing foreign keys at `auth.users` was not needed.
-- **Neither SQL tool can impersonate a user.** `npx @insforge/cli db query` rejects `DO` blocks ("could not be parsed"), and the MCP `run-raw-sql` rejects `SET ROLE` / `set_config` ("Changing SQL session configuration is not allowed"). RLS can only be tested as a real signed-in user through the API.
-- **Signed-out check that does work:** `curl` the REST endpoint `{INSFORGE_URL}/api/database/records/<table>` with the anon key as bearer; a correct setup returns 401 "permission denied".
-- **InsForge storage policies** go on `storage.objects` (columns `bucket`, `key`, `uploaded_by`), use `auth.jwt() ->> 'sub'` and `storage.foldername(key)`, and need `ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY` because fresh projects ship with it off.
-- **InsForge gives `anon` and `authenticated` broad default privileges on public tables.** The migration revokes them and grants back only what each table needs.
-- **InsForge project memory (`insforge memory remember`) needs a paid plan.** It fails on this organisation; don't rely on it.
+- `PageProps<"/find-jobs/[id]">` failed type-check until `npx next typegen` generated the route types.
+- A visual check without a session: a temporary unprotected route with the design's data, screenshotted with headless Chrome (`chrome.exe --headless=new --screenshot=...`) against `next dev -p 3100`; delete the route afterwards (done).
 - Still true from before:
   - Build and run from `C:\dev\jobpilot` (lowercase), or `next build` fails with a workStore InvariantError.
-  - `createBrowserClient()` fires a refresh request on creation; import `lib/insforge-client.ts` lazily where signed-out visitors can reach the code.
-  - posthog-js drops events from headless Chrome; override the user agent and `navigator.webdriver`, and add `?__posthog_debug=true`.
-  - `updateSession` blanks cookies instead of deleting them, so check the value.
   - Context files live at `C:\Users\SBS\OneDrive\Bureau\assets\jobpilotzip\context\context\`, designs in `designs/*.png`.
+  - Throwaway TypeScript scripts: put the script inside `C:\dev\jobpilot` and run `node --env-file=.env.local --import <hook file> script.ts`, with a hook that maps `@/` via `registerHooks` from `node:module`.
+  - PostgREST syntax can be checked signed out: a well-formed query answers `42501`, a malformed one `PGRST100`.
 
 ## Current state
 
-- **Live backend:** four tables with RLS on, 15 owner-only policies, the trigger attached, the one existing account backfilled a profile, private `resumes` bucket present. All tables are empty apart from that one profile row.
-- **Verified:** policy expressions read back from the database; signed-out API requests denied on all four tables and the bucket; check constraints reject a bad `source` and a `match_score` of 101; no test rows left behind.
-- **Not verified:** one signed-in user against another user's rows and files (needs two real sessions). Also not exercised: the trigger firing on a brand-new sign-up (only the backfill ran).
-- **Still not verified from 03:** `user_signed_in` and its `provider` property, the identify call after login, `oauth_sign_in_started`, and the `signOut` action (not wired to any button).
-- **Nothing is committed.** The working tree on `feature/02-auth` holds all of 03, 04 (`migrations/`), the link-step edits to `AGENTS.md` and `.gitignore`, plus `memory.md` and `skills-lock.json`. The branch is unpushed and unmerged.
-- No build, `tsc` or lint was run this session (no app code changed).
-- The InsForge user API key was pasted into the chat this session: [REDACTED_API_KEY]. It may be worth rotating.
+- **Passing:** type-check, lint, `next build`.
+- **Not verified: 12 on the real route.** The components match the design at 1418px in headless Chrome, and signed out `/find-jobs/<uuid>` redirects to /login. Not seen: a real job loading, a table row click, the 404 page in a browser, narrow screens (the check at 390px was only a quick look and showed horizontal overflow in the headless render, possibly an artefact of the window size — re-check on a phone-width browser).
+- **Not verified from earlier features:** every Claude call (07 extraction, 08 generation, 10 scoring), a search that saves jobs, 11 filters against real rows, real profile save and upload, PostHog events with a real login, cross-user RLS.
+- `ANTHROPIC_API_KEY` is still missing from `.env.local`. The Adzuna keys are set.
+- **Git:** `57b5557` was the latest commit before this session. 08–12 are being committed on `feature/02-auth` (see git log). The branch is unpushed and unmerged on purpose.
 - The claude.ai PostHog connector is not authorized, so live events can't be queried from a session.
+- An InsForge user API key was pasted into chat in an earlier session: [REDACTED_API_KEY]. It may be worth rotating.
 
 ## Next session starts with
 
-1. Commit the 03 and 04 work (decide first whether `skills-lock.json` and `memory.md` go in).
-2. Log in once with Google or GitHub in a real browser and check PostHog live events for `oauth_sign_in_started`, `user_signed_in` (with `provider`) and an identified person.
-3. Start **05 Profile Page — Full UI** (build-plan.md): mock data, no save logic. Read the context files and the profile design in `designs/` first; run `/architect` if anything is unclear.
-4. When 05/06 give a page that reads data as a signed-in user, run the cross-user RLS check with two accounts.
+1. Add `ANTHROPIC_API_KEY` to `.env.local` when available, then work through the signed-in test lists for 06, 07, 08, 10, 11 and 12 in progress-tracker.md (Notes section). While at it, check the job details page at phone width.
+2. Start **13 Company Research Agent** (build-plan.md): `POST /api/agent/research` with `{ jobId }`, `agent/research.ts`, `lib/browserbase.ts`, `lib/stagehand.ts`, wire the Research Company button, render the 9-field dossier in `CompanyResearch.tsx`, fire `company_researched`. Needs `BROWSERBASE_API_KEY`, `BROWSERBASE_PROJECT_ID` (and `OPENAI_API_KEY` if Stagehand stays on GPT-4o), so check which are set. Load the `claude-api` skill before the synthesis call and the Browserbase / Stagehand skills first. Decide the Stagehand model.
 
 ## Open questions
 
-- Merge `feature/02-auth` into `main` and push? It now carries 02, 03 and 04.
-- Widen the policies? `profiles` has no delete and `agent_logs` no update/delete, which is narrower than the original plan.
-- `.gitignore` now ignores `.claude` and `.agents`, so the project skills (`architect`, `remember`, `review`, …) won't be committed. Keep that, or un-ignore `.claude/skills`?
-- Keep the OpenTelemetry server logs the PostHog wizard added, or drop them and their four packages?
-- No reverse proxy for PostHog, so ad blockers will drop browser events. Worth adding before launch?
-- For production: add the deployed `/callback` URL to InsForge's allowed redirect list and set `NEXT_PUBLIC_APP_URL`.
-- The same value is called `ctaHref` in some homepage components and `primaryHref` in another (leftover from the 02 review).
+- Which model for the Stagehand browser agent? Decide in 13.
+- Before production: add the deployed `/callback` URL to InsForge's allowed redirect list, set `NEXT_PUBLIC_APP_URL`, and add the PostHog reverse proxy.
+- Rotate the InsForge user API key that was pasted into chat earlier (the user has not decided).

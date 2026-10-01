@@ -4,6 +4,7 @@ import { useRef, useState, useTransition } from "react";
 
 import { ProfileForm } from "@/components/profile/ProfileForm";
 import { ResumeUpload } from "@/components/profile/ResumeUpload";
+import { getProfileCompletion } from "@/lib/profile-completion";
 import { fillEmptyProfileFields } from "@/lib/profile-merge";
 import { parseProfileForm } from "@/lib/profile-schema";
 import { RESUME_EXTRACTION_ERROR } from "@/lib/resume";
@@ -110,6 +111,8 @@ export function ProfileWorkspace({ profile }: Props) {
     <>
       <ResumeUpload
         hasResume={Boolean(profile.resume_pdf_url)}
+        // The saved row, not the form: that is what a resume is generated from
+        isProfileComplete={getProfileCompletion(profile).percent === 100}
         isExtracting={isExtracting}
         onExtract={handleExtract}
       />
