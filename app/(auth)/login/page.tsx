@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { CircleAlert } from "lucide-react";
 
+import { CaptureOnMount } from "@/components/analytics/CaptureOnMount";
 import { GitHubIcon } from "@/components/auth/GitHubIcon";
 import { GoogleIcon } from "@/components/auth/GoogleIcon";
 import { OAuthButton } from "@/components/auth/OAuthButton";
@@ -41,6 +42,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
             role="alert"
             className="mt-6 flex items-start gap-2 rounded-md border border-error/30 bg-error/5 px-3 py-2.5 text-sm text-text-dark"
           >
+            <CaptureOnMount event="oauth_sign_in_failed" />
             <CircleAlert className="mt-0.5 size-4 shrink-0 text-error" />
             We couldn’t sign you in. Please try again.
           </div>

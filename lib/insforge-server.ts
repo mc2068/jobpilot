@@ -6,6 +6,8 @@ import {
 } from "@insforge/sdk/ssr";
 
 export const CODE_VERIFIER_COOKIE = "insforge_code_verifier";
+// Remembers which provider started the flow so /callback can report it.
+export const OAUTH_PROVIDER_COOKIE = "oauth_provider";
 
 export async function createInsforgeServer(): Promise<InsForgeClient> {
   return createServerClient({ cookies: await cookies() });

@@ -13,7 +13,7 @@ type Props = {
 export function OAuthButton({ provider, label, icon }: Props) {
   return (
     <form action={signInWithProvider.bind(null, provider)}>
-      <OAuthSubmitButton label={label} icon={icon} />
+      <OAuthSubmitButton provider={provider} label={label} icon={icon} />
     </form>
   );
 }

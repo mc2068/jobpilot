@@ -1,6 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { TrackedLink } from "@/components/analytics/TrackedLink";
+
 const NAV_LINKS = [
   { label: "Dashboard", href: "/dashboard" },
   { label: "Find Jobs", href: "/find-jobs" },
@@ -37,12 +39,14 @@ export function HomeNavbar({ ctaHref }: Props) {
           ))}
         </nav>
 
-        <Link
+        <TrackedLink
           href={ctaHref}
+          event="navbar_signup_clicked"
+          properties={{ destination: ctaHref }}
           className="rounded-md border border-text-slate-medium bg-text-slate px-[19px] py-2 text-[15px] leading-6 text-surface transition-opacity hover:opacity-90"
         >
           Start for free
-        </Link>
+        </TrackedLink>
       </div>
     </header>
   );

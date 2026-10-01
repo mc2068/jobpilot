@@ -1,13 +1,7 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import "./globals.css";
 
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-  // The designs use Inter's optical sizes, which tighten large text
-  axes: ["opsz"],
-});
+import { inter } from "@/app/fonts";
+import "./globals.css";
 
 export const metadata: Metadata = {
   title: "JobPilot",
