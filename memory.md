@@ -1,67 +1,61 @@
-# Memory — Feature 12 Job Details Page (Phase 4 started)
+# Memory — Feature 13 Company Research Agent (Phase 4 built)
 
-Last updated: 2026-10-01 (open questions closed)
+Last updated: 2026-10-01 (end of session)
 
 ## What was built
 
-- **12 Job Details Page — Full UI**, this session. Not committed.
-  - `app/find-jobs/[id]/page.tsx`: loads one job of the signed-in user (`.limit(1)`, not `.single()`), renders the page. `not-found.tsx` beside it is the "Job not found" page.
-  - `components/job-details/`: `JobInfo` (header card + four info cards), `JobInfoCard`, `MatchScore` (AI reasoning + skills card), `SkillTag`, `JobDescription` (Adzuna snippet + "Jobs by Adzuna" credit), `CompanyResearch` (empty state only), `JobActions` (Apply Now).
-  - `lib/job-details.ts` (`isJobId`, `formatJobType`, `getSafeUrl`, `ADZUNA_URL`, `MISSING_VALUE`), `getJobDetailsPath` in `lib/routes.ts`, the `JobDetails` type in `types/index.ts`.
-  - `JobsTable` rows now link to the details page (the company name link's `::after` covers the row). `JobsPagination` imports `ADZUNA_URL` from `lib/job-details.ts`.
-- **08, 09, 10 and 11 are still uncommitted** in the working tree (built in earlier sessions). Their decisions and test lists are in progress-tracker.md.
-- Context files updated (outside the repo): progress-tracker.md, ui-registry.md, architecture.md.
+- **13 Company Research Agent**, this session.
+  - `app/api/agent/research/route.ts`: `POST { jobId }`, synchronous, `maxDuration = 90`. Answers 401 signed out, 400 bad id, 503 when the Anthropic or Browserbase key is missing, 404 for a job that is not the user's, 502 when the dossier can't be written.
+  - `agent/research.ts` (`researchCompany`: find the homepage, read it and up to 3 sub-pages, synthesize, log; never throws), `agent/company-site.ts` (pure helpers: `candidateHomepages`, job-board denylist, `rankSubPageLinks`, `cleanMarkdown`), `agent/dossier.ts` (`synthesizeDossier`: the one Claude Haiku 4.5 call).
+  - `lib/browserbase.ts` (`fetchPageMarkdown`, `isBrowserbaseConfigured`), `lib/company-research.ts` (dossier zod schema and type, `normalizeDossier`, `parseDossier`), `lib/research-messages.ts` (error texts, kept apart so the client button does not bundle zod).
+  - `components/job-details/CompanyResearch.tsx` now renders the 9-field dossier; `ResearchButton.tsx` is the client button (Research Company / Research again, pending and error states).
+  - Also: `describeAnthropicError` moved into `lib/anthropic.ts` (used by `agent/matcher.ts` and `agent/dossier.ts`); `UNKNOWN_COMPANY` exported from `lib/adzuna.ts`; `company_researched` added to the server events in `lib/posthog-server.ts`; `AGENT_RESEARCH_API_PATH` in `lib/routes.ts`; `company_research: unknown` on `JobDetails`.
+  - New packages: `@browserbasehq/sdk`, `tldts`. `.env.example` lists `BROWSERBASE_API_KEY`.
+- **Back to Jobs restores the list view** (built earlier this session, committed with 08–12): `buildJobDetailsHref` in `lib/job-search.ts`.
+- Context files updated (outside the repo): library-docs.md, architecture.md, code-standards.md, project-overview.md, build-plan.md, progress-tracker.md, ui-registry.md.
 
 ## Decisions made
 
-- **The design wins over the plan** (`designs/job-details.png`): the score is a pill badge ("85% Match Score", green at `MATCH_THRESHOLD` or above, grey below), not `MatchScoreBar`. Missing skills are purple (`accent`) tags.
-- The page is 780px wide. The design's navbar (user icon, Sign out) was not built; `signOut` is still not wired to any UI.
-- **Research Company is a stub**: a button with no handler, and the card always shows the empty state. 13 wires it and reads `company_research`.
-- The description is `about_role` (the Adzuna snippet) only. Responsibilities, requirements, benefits and about-company are not rendered because nothing fills those columns.
-- View Job Post uses `source_url`; Apply Now uses `external_apply_url` then `source_url`. A link only renders if it starts with http(s) (`getSafeUrl`).
-- A bad id, an unknown id and another user's job all call `notFound()`; a failed read shows the page-level load error.
-- **Back to Jobs restores the list view.** `JobsTable` links to `/find-jobs/<id>?q=&match=&sort=&page=` (`buildJobDetailsHref` in `lib/job-search.ts`); the details page re-parses them with `parseJobFilters` and links back via `buildFindJobsHref`. The 404 page still goes to plain `/find-jobs`. Not yet checked in a browser.
-- Carried over and still in force:
-  - The jobs list state lives in the URL (`?q=&match=&sort=&page=`); default sort is Match Score (confirmed by the user).
-  - Text AI model is Claude Haiku 4.5 via `lib/anthropic.ts`; the Stagehand model is decided in 13.
-  - The user chose to wait for an `ANTHROPIC_API_KEY`: no stand-in scorer; job search answers 503 until then.
-  - Schema changes are migration files only; no dedupe of jobs across searches.
-  - Tailwind v4 (the "use 3.4" line in AGENTS.md doesn't apply).
-- **Closed 2026-10-01:**
-  - No test runner for now; manual test lists in progress-tracker.md stay the check.
-  - `.claude` and `.agents` stay in `.gitignore`; project skills are not committed.
-  - RLS policies stay as they are (`profiles` no delete, `agent_logs` no update/delete) until something needs them.
-  - Keep the OpenTelemetry server logs and their four packages.
-  - PostHog reverse proxy: add before launch, not now.
-  - Git: commit 08–12 on `feature/02-auth` only. Push and merge to `main` wait until the signed-in tests have run.
+- **Pages are read with the Browserbase Fetch API, not Stagehand** (decided with the user). No browser session, no second AI model. `@browserbasehq/stagehand`, `OPENAI_API_KEY` and `BROWSERBASE_PROJECT_ID` are not used. Cost: scripts do not run, so JavaScript-only sites come back thin.
+- The Fetch response has no final URL after redirects, so the job's apply link is followed with a plain server `fetch` (8s, body never read) to find the employer's domain.
+- Homepage = the landing host's root domain (`tldts`), never Adzuna or a known job board / ATS (`JOB_BOARD_DOMAINS`); fallback is a guess `https://www.{company}.com`, never for "Company not listed". First candidate with at least 200 characters of text wins.
+- Sub-pages are picked in code, not by the model: best of each kind first (about, engineering, product, blog, team, careers), up to 3, fetched in parallel. One Claude call in total (40s timeout, no retry).
+- Dossier = 8 model fields + `sources` (pages actually read, set by code) + `researchedAt` (ISO), all inside `jobs.company_research`. No migration. Research again overwrites. If no page can be read the dossier is still written from the job and profile.
+- `maxDuration = 90`: the route waits on every fetch and the Claude call. The old "no maxDuration" note in library-docs.md was wrong and is fixed.
+- Still in force from before: jobs list state lives in the URL, default sort Match Score; every AI call is Claude Haiku 4.5 via `AI_MODEL`; no stand-in scorer while the key is missing; schema changes are migration files only; Tailwind v4; no test runner; `.claude` and `.agents` stay git-ignored; RLS policies unchanged; OpenTelemetry logs kept; push and merge to `main` wait for the signed-in tests.
 
 ## Problems solved
 
-- `PageProps<"/find-jobs/[id]">` failed type-check until `npx next typegen` generated the route types.
-- A visual check without a session: a temporary unprotected route with the design's data, screenshotted with headless Chrome (`chrome.exe --headless=new --screenshot=...`) against `next dev -p 3100`; delete the route afterwards (done).
+- The Browserbase `browse` skill is installed globally (`~/.claude/skills/browse`); `browse cloud fetch --help` documents the Fetch API. The SDK call is `bb.fetchAPI.create({ url, format: "markdown", allowRedirects: true })`; types in `node_modules/@browserbasehq/sdk/resources/fetch-api.d.ts`.
+- A dev server is often already running on port 3000 from the user's side: use it for visual checks instead of starting another (`next dev -p 3100` refuses while one runs).
+- Headless Chrome can't render narrower than about 500px: a 390px screenshot is clipped on the right. Check at 500px, or on a real phone-width browser.
+- A bash heredoc holding a long Python script with backticks and quotes broke; write the script with the file tool and run it.
 - Still true from before:
   - Build and run from `C:\dev\jobpilot` (lowercase), or `next build` fails with a workStore InvariantError.
   - Context files live at `C:\Users\SBS\OneDrive\Bureau\assets\jobpilotzip\context\context\`, designs in `designs/*.png`.
   - Throwaway TypeScript scripts: put the script inside `C:\dev\jobpilot` and run `node --env-file=.env.local --import <hook file> script.ts`, with a hook that maps `@/` via `registerHooks` from `node:module`.
-  - PostgREST syntax can be checked signed out: a well-formed query answers `42501`, a malformed one `PGRST100`.
+  - `PageProps<...>` route types need `npx next typegen` after adding a route.
 
 ## Current state
 
-- **Passing:** type-check, lint, `next build`.
-- **Not verified: 12 on the real route.** The components match the design at 1418px in headless Chrome, and signed out `/find-jobs/<uuid>` redirects to /login. Not seen: a real job loading, a table row click, the 404 page in a browser, narrow screens (the check at 390px was only a quick look and showed horizontal overflow in the headless render, possibly an artefact of the window size — re-check on a phone-width browser).
-- **Not verified from earlier features:** every Claude call (07 extraction, 08 generation, 10 scoring), a search that saves jobs, 11 filters against real rows, real profile save and upload, PostHog events with a real login, cross-user RLS.
-- `ANTHROPIC_API_KEY` is still missing from `.env.local`. The Adzuna keys are set.
-- **Git:** `57b5557` was the latest commit before this session. 08–12 are being committed on `feature/02-auth` (see git log). The branch is unpushed and unmerged on purpose.
+- **Passing:** type-check, lint, `next build` (`/api/agent/research` is listed).
+- **Checked for 13:** live Fetch calls (vercel.com, stripe.com about 1s each, a dead domain returns null); link ranking on real pages; a real redirect followed; 21 helper checks and 9 dossier clean-up / parser checks on sample input; the card in headless Chrome at 900px and 500px with sample data.
+- **Not verified for 13:** a real research run. The Claude call, the save, the button states in a browser, the 503 message, `company_researched` in PostHog, and what a real Adzuna `redirect_url` lands on have not been seen.
+- **Not verified from earlier features:** every Claude call (07, 08, 10), a search that saves jobs, 11 filters against real rows, 12 on the real route, real profile save and upload, PostHog events with a real login, cross-user RLS.
+- `ANTHROPIC_API_KEY` is still missing from `.env.local`. The Adzuna keys and `BROWSERBASE_API_KEY` are set.
+- **Git:** on `feature/02-auth`. 08–12 are commit `792e844`; 13 is committed after it (see git log). The branch is unpushed and unmerged on purpose.
 - The claude.ai PostHog connector is not authorized, so live events can't be queried from a session.
 - An InsForge user API key was pasted into chat in an earlier session: [REDACTED_API_KEY]. It may be worth rotating.
 
 ## Next session starts with
 
-1. Add `ANTHROPIC_API_KEY` to `.env.local` when available, then work through the signed-in test lists for 06, 07, 08, 10, 11 and 12 in progress-tracker.md (Notes section). While at it, check the job details page at phone width.
-2. Start **13 Company Research Agent** (build-plan.md): `POST /api/agent/research` with `{ jobId }`, `agent/research.ts`, `lib/browserbase.ts`, `lib/stagehand.ts`, wire the Research Company button, render the 9-field dossier in `CompanyResearch.tsx`, fire `company_researched`. Needs `BROWSERBASE_API_KEY`, `BROWSERBASE_PROJECT_ID` (and `OPENAI_API_KEY` if Stagehand stays on GPT-4o), so check which are set. Load the `claude-api` skill before the synthesis call and the Browserbase / Stagehand skills first. Decide the Stagehand model.
+1. Add `ANTHROPIC_API_KEY` to `.env.local` when available, then work through the signed-in test lists for 06, 07, 08, 10, 11, 12 and 13 in progress-tracker.md (Notes section).
+2. First thing to look at once jobs exist: what a real Adzuna `redirect_url` lands on. If it is an Adzuna interstitial, every job falls back to the `www.{company}.com` guess and the homepage approach needs a rethink (Browserbase Search was the alternative considered).
+3. Then **14 Dashboard Page — Full UI** (build-plan.md, Phase 5): mock data first. Run `/architect` before it.
 
 ## Open questions
 
-- Which model for the Stagehand browser agent? Decide in 13.
-- Before production: add the deployed `/callback` URL to InsForge's allowed redirect list, set `NEXT_PUBLIC_APP_URL`, and add the PostHog reverse proxy.
+- Does the Adzuna redirect reach the employer's site from a server fetch, or stop at an Adzuna page?
+- Is the Fetch API enough for JavaScript-heavy company sites, or is a real-browser fallback needed later?
+- Before production: add the deployed `/callback` URL to InsForge's allowed redirect list, set `NEXT_PUBLIC_APP_URL`, add the PostHog reverse proxy, and check the host allows a 90-second route.
 - Rotate the InsForge user API key that was pasted into chat earlier (the user has not decided).

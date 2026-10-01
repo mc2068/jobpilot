@@ -8,6 +8,7 @@ export const RESUME_EXTRACT_API_PATH = "/api/resume/extract";
 export const RESUME_GENERATE_API_PATH = "/api/resume/generate";
 export const RESUME_FILE_API_PATH = "/api/resume";
 export const AGENT_FIND_API_PATH = "/api/agent/find";
+export const AGENT_RESEARCH_API_PATH = "/api/agent/research";
 
 export const getJobDetailsPath = (jobId: string): string =>
   `${FIND_JOBS_PATH}/${jobId}`;

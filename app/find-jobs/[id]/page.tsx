@@ -9,6 +9,7 @@ import { JobDescription } from "@/components/job-details/JobDescription";
 import { JobInfo } from "@/components/job-details/JobInfo";
 import { MatchScore } from "@/components/job-details/MatchScore";
 import { Navbar } from "@/components/layout/Navbar";
+import { parseDossier } from "@/lib/company-research";
 import { createInsforgeServer } from "@/lib/insforge-server";
 import { isJobId } from "@/lib/job-details";
 import { buildFindJobsHref, parseJobFilters } from "@/lib/job-search";
@@ -20,7 +21,7 @@ export const metadata: Metadata = {
 };
 
 const JOB_COLUMNS =
-  "id, company, title, match_score, salary, found_at, source_url, external_apply_url, location, job_type, about_role, match_reason, matched_skills, missing_skills";
+  "id, company, title, match_score, salary, found_at, source_url, external_apply_url, location, job_type, about_role, match_reason, matched_skills, missing_skills, company_research";
 
 // Null when the job could not be read. A job that does not exist, or belongs
 // to someone else, is a 404.
@@ -85,7 +86,11 @@ export default async function JobDetailsPage({
               <JobInfo job={job} />
               <MatchScore job={job} />
               <JobDescription description={job.about_role} />
-              <CompanyResearch company={job.company} />
+              <CompanyResearch
+                jobId={job.id}
+                company={job.company}
+                dossier={parseDossier(job.company_research)}
+              />
               <JobActions job={job} />
             </>
           ) : (

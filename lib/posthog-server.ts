@@ -4,7 +4,8 @@ type ServerEvent =
   | "user_signed_in"
   | "profile_completed"
   | "job_search_started"
-  | "job_found";
+  | "job_found"
+  | "company_researched";
 
 type EventProperties = Record<string, string | number | boolean>;
 

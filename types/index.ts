@@ -121,6 +121,8 @@ export type JobDetails = JobListItem & {
   match_reason: string | null;
   matched_skills: string[];
   missing_skills: string[];
+  // Free-form jsonb: read it with parseDossier (lib/company-research.ts)
+  company_research: unknown;
 };
 
 // What one Find Jobs run saved: every scored job, and how many of them

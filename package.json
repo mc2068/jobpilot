@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.131.0",
+    "@browserbasehq/sdk": "^2.21.0",
     "@insforge/sdk": "^1.5.2",
     "@opentelemetry/api-logs": "^0.222.0",
     "@opentelemetry/exporter-logs-otlp-http": "^0.222.0",
@@ -22,6 +23,7 @@
     "posthog-node": "^5.55.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
+    "tldts": "^7.4.16",
     "zod": "^4.6.5"
   },
   "devDependencies": {

@@ -15,3 +15,30 @@ export function isAnthropicConfigured(): boolean {
 export function createAnthropic(): Anthropic {
   return new Anthropic({ timeout: REQUEST_TIMEOUT_MS, maxRetries: 1 });
 }
+
+// A readable reason for agent_logs. The raw error stays in the server console.
+// `fallback` is the sentence for an error that is not an Anthropic.APIError.
+export function describeAnthropicError(
+  error: unknown,
+  fallback: string,
+): string {
+  if (error instanceof Anthropic.AuthenticationError) {
+    return "The AI service rejected the API key.";
+  }
+  if (error instanceof Anthropic.PermissionDeniedError) {
+    return "The AI service refused the request for this account.";
+  }
+  if (error instanceof Anthropic.RateLimitError) {
+    return "The AI service rate limit was reached.";
+  }
+  if (error instanceof Anthropic.APIConnectionError) {
+    return "The AI service could not be reached.";
+  }
+  if (error instanceof Anthropic.APIError) {
+    return `The AI service returned an error (${error.status ?? "no status"}).`;
+  }
+
+  // A missing API key lands here as a plain Error. Routes check for the key
+  // before they start, so this is the unexpected case.
+  return fallback;
+}

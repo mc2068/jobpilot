@@ -1,10 +1,13 @@
-import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
 
 import type { JobMatch, MatchResult } from "@/agent/types";
 import type { AdzunaJob } from "@/lib/adzuna";
-import { AI_MODEL, createAnthropic } from "@/lib/anthropic";
+import {
+  AI_MODEL,
+  createAnthropic,
+  describeAnthropicError,
+} from "@/lib/anthropic";
 import { MATCH_THRESHOLD } from "@/lib/utils";
 import type { Profile } from "@/types";
 
@@ -154,29 +157,9 @@ export async function scoreJob(
     return { success: true, match };
   } catch (error) {
     console.error("[agent/matcher]", error);
-    return { success: false, error: describeFailure(error) };
+    return {
+      success: false,
+      error: describeAnthropicError(error, "The scoring request failed."),
+    };
   }
-}
-
-// A readable reason for agent_logs. The raw error stays in the server console.
-function describeFailure(error: unknown): string {
-  if (error instanceof Anthropic.AuthenticationError) {
-    return "The AI service rejected the API key.";
-  }
-  if (error instanceof Anthropic.PermissionDeniedError) {
-    return "The AI service refused the request for this account.";
-  }
-  if (error instanceof Anthropic.RateLimitError) {
-    return "The AI service rate limit was reached.";
-  }
-  if (error instanceof Anthropic.APIConnectionError) {
-    return "The AI service could not be reached.";
-  }
-  if (error instanceof Anthropic.APIError) {
-    return `The AI service returned an error (${error.status ?? "no status"}).`;
-  }
-
-  // A missing API key lands here as a plain Error. The route checks for the
-  // key before a run starts, so this is the unexpected case.
-  return "The scoring request failed.";
 }

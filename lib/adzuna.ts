@@ -24,7 +24,9 @@ const API_BASE_URL = "https://api.adzuna.com/v1/api/jobs";
 // agent/adzuna.ts drops those repeats before scoring.
 const RESULTS_PER_PAGE = 30;
 const REQUEST_TIMEOUT_MS = 15_000;
-const UNKNOWN_COMPANY = "Company not listed";
+// Saved as jobs.company when Adzuna has none; company research must not treat
+// it as a name to look up.
+export const UNKNOWN_COMPANY = "Company not listed";
 
 const adzunaJobSchema = z.object({
   id: z.coerce.string(),
